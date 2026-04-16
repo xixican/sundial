@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sundial</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0c0c10!important;margin:0;padding:0;overflow:hidden}
+body{color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;user-select:none}
+.wrapper{
+  background:#0c0c10;
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+  animation:p .14s cubic-bezier(.34,1.56,.64,1)
+}
+@keyframes p{from{opacity:0;transform:scale(.94)translateY(-3px)}to{opacity:1;transform:scale(1)}}
+
+/* Drag handle */
+.drag-bar{
+  -webkit-app-region:drag;
+  height:6px;cursor:grab
+}
+.drag-bar *{-webkit-app-region:no-drag}
+
+/* Header bar with mode toggle and close */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);
+  min-height:30px;
+  -webkit-app-region:drag
+}
+.hdr *{-webkit-app-region:no-drag}
+.mode-toggle{
+  display:flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;color:rgba(255,255,255,.35);
+  cursor:pointer;letter-spacing:.3px
+}
+.mode-toggle:hover{color:rgba(255,255,255,.6)}
+.mode-label{
+  padding:2px 6px;border-radius:4px;transition:all .12s
+}
+.mode-label.active{
+  color:#2ecc71;background:rgba(46,204,113,.1);
+  border:1px solid rgba(46,204,113,.2)
+}
+.mode-label:not(.active){border:1px solid transparent}
+.close-x{
+  width:22px;height:22px;border-radius:6px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.3);font-size:12px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+  transition:all .12s;line-height:1
+}
+.close-x:hover{background:rgba(255,80,80,.12);border-color:rgba(255,80,80,.25);color:#ff6b6b}
+.wrapper.multi .close-x{display:flex}
+
+/* Single mode */
+.single-view{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:6px 16px 8px;text-align:center
+}
+.wrapper.multi .single-view{display:none}
+.tm{font-size:17px;font-weight:700;color:#fff;cursor:pointer;line-height:1.25}
+.tm:hover{color:#2ecc71}
+.tz-tag{
+  display:inline-block;margin-top:4px;font-size:10px;font-weight:600;color:#2ecc71;
+  background:rgba(46,204,113,.1);padding:2px 9px;border-radius:8px;
+  border:1px solid rgba(46,204,113,.2)
+}
+.meta{
+  margin-top:3px;font-size:9px;color:rgba(255,255,255,.3);
+  font-family:'SF Mono',Consolas,monospace;letter-spacing:.3px
+}
+
+/* Multi mode */
+.multi-view{display:none;padding:4px 0}
+.wrapper.multi .multi-view{display:block}
+.scroll-area{
+  overflow-y:auto;overflow-x:hidden;padding:0 8px
+}
+.scroll-area::-webkit-scrollbar{width:3px}
+.scroll-area::-webkit-scrollbar-track{background:transparent}
+.scroll-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+.record{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 8px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.04);
+  margin-bottom:3px;transition:all .12s;
+  background:rgba(255,255,255,.01)
+}
+.record:hover{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08)}
+.record .idx{
+  width:16px;height:16px;border-radius:4px;
+  background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.15);
+  color:#2ecc71;font-size:8px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+.record .info{flex:1;min-width:0}
+.record .dt{
+  font-size:12px;font-weight:600;color:#fff;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.record .dt:hover{color:#2ecc71}
+.record .sub{
+  font-size:8px;color:rgba(255,255,255,.3);margin-top:1px;
+  font-family:'SF Mono',Consolas,monospace;
+  display:flex;align-items:center;gap:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.record .sub .tz-sm{
+  color:#2ecc71;font-weight:600;
+  background:rgba(46,204,113,.08);padding:0 4px;border-radius:3px
+}
+.record .note-input{
+  width:72px;height:20px;flex-shrink:0;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:5px;color:rgba(255,255,255,.6);font-size:9px;
+  padding:0 5px;outline:none;font-family:inherit;
+  transition:border-color .12s
+}
+.record .note-input:focus{border-color:rgba(46,204,113,.3)}
+.record .note-input::placeholder{color:rgba(255,255,255,.15)}
+.record .del-btn{
+  width:18px;height:18px;border-radius:5px;flex-shrink:0;
+  background:transparent;border:1px solid transparent;
+  color:rgba(255,255,255,.15);font-size:10px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .12s
+}
+.record .del-btn:hover{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.2);color:#ff6b6b}
+
+.multi-footer{
+  padding:4px 10px 6px;font-size:8px;color:rgba(255,255,255,.2);
+  text-align:center
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- Drag handle (grab anywhere on header or this bar to move) -->
+<div class="drag-bar"></div>
+
+<!-- Header: mode switch + close -->
+<div class="hdr">
+  <div class="mode-toggle" id="modeToggle" title="Switch convert mode">
+    <span class="mode-label" id="lblSingle">SINGLE</span>
+    <span style="color:rgba(255,255,255,.15)">|</span>
+    <span class="mode-label" id="lblMulti">MULTI</span>
+  </div>
+  <div class="close-x" id="btnClose" title="Close">✕</div>
+</div>
+
+<!-- Single mode view -->
+<div class="single-view" id="singleView">
+  <div class="tm" id="t" title="Click to copy">--</div>
+  <div class="tz-tag" id="tzTag"></div>
+  <div class="meta"><span id="o">--</span> &middot; <span id="typeTag">sec</span></div>
+</div>
+
+<!-- Multi mode view -->
+<div class="multi-view" id="multiView">
+  <div class="scroll-area" id="recordList"></div>
+  <div class="multi-footer" id="multiFooter">0 / 5 records</div>
+</div>
+
+</div><!-- .wrapper -->
+
+<script>
+(function(){
+var clip=null,ipc=null;
+try{clip=require('electron').clipboard;ipc=require('electron').ipcRenderer}catch(e){}
+
+var records = [];
+var maxRecords = 5;
+var mode = 'single';
+var lastData = null;
+
+var MULTI_BASE_H = 72;  // must match main.js: drag-bar(6)+header(30)+footer(24)+padding(12)
+var MULTI_ROW_H  = 44;
+var MULTI_MAX_VIS = 5;
+
+function closePopup(){
+  if(ipc) ipc.send('close-popup');
+  else window.close();
+}
+
+function copyText(text, el) {
+  if (!clip || !text) return;
+  clip.writeText(text);
+  if (el) {
+    var orig = el.textContent;
+    el.textContent = 'Copied!';
+    setTimeout(function(){ el.textContent = orig; }, 800);
+  }
+  if (mode === 'single') {
+    setTimeout(closePopup, 500);
+  }
+}
+
+// ---- Single mode rendering ----
+function renderSingle(data) {
+  if (!data) return;
+  document.getElementById('t').textContent = data.datetime || 'error';
+  document.getElementById('tzTag').textContent = data.tzLabel || data.timezone || '';
+  document.getElementById('o').textContent = 'ts=' + (data.original || '');
+  document.getElementById('typeTag').textContent = data.type === 'ms' ? 'ms' : 'sec';
+  document.getElementById('t').onclick = function() { copyText(data.datetime, this); };
+}
+
+// ---- Multi mode rendering ----
+function renderRecords() {
+  var list = document.getElementById('recordList');
+  var html = '';
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    html += '<div class="record" data-i="' + i + '">' +
+      '<div class="idx">' + (i+1) + '</div>' +
+      '<div class="info">' +
+        '<div class="dt" data-dt="' + (r.datetime||'') + '" title="Click to copy">' + (r.datetime||'--') + '</div>' +
+        '<div class="sub">' +
+          '<span class="tz-sm">' + (r.tzLabel||'') + '</span>' +
+          '<span>ts=' + (r.original||'') + '</span>' +
+          '<span>' + (r.type==='ms'?'ms':'sec') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<input class="note-input" data-i="' + i + '" type="text" maxlength="8" placeholder="memo" value="' + (r.note||'') + '">' +
+      '<div class="del-btn" data-i="' + i + '" title="Delete">✕</div>' +
+    '</div>';
+  }
+  list.innerHTML = html;
+  document.getElementById('multiFooter').textContent = records.length + ' / ' + maxRecords + ' records';
+
+  // Bind events
+  var dts = list.querySelectorAll('.dt');
+  for (var j = 0; j < dts.length; j++) {
+    dts[j].onclick = function() { copyText(this.getAttribute('data-dt'), this); };
+  }
+  var dels = list.querySelectorAll('.del-btn');
+  for (var k = 0; k < dels.length; k++) {
+    dels[k].onclick = function() {
+      var idx = parseInt(this.getAttribute('data-i'));
+      records.splice(idx, 1);
+      renderRecords();
+      notifyResize();
+    };
+  }
+  var notes = list.querySelectorAll('.note-input');
+  for (var m = 0; m < notes.length; m++) {
+    notes[m].oninput = function() {
+      var idx = parseInt(this.getAttribute('data-i'));
+      records[idx].note = this.value;
+    };
+  }
+}
+
+function addRecord(data) {
+  if (!data) return;
+  if (records.length >= maxRecords) {
+    records.shift();
+  }
+  records.push({
+    datetime: data.datetime,
+    original: data.original,
+    type: data.type,
+    tzLabel: data.tzLabel || data.timezone || '',
+    timezone: data.timezone,
+    note: ''
+  });
+  renderRecords();
+  notifyResize();
+}
+
+// ---- Mode switching ----
+function setMode(m) {
+  if (m !== mode) {
+    // Tell main process to switch windows (hide this one, show the other)
+    if (ipc) ipc.send('popup-mode-changed', m);
+    return;
+  }
+  applyMode(m);
+}
+
+function applyMode(m) {
+  mode = m;
+  document.querySelector('.wrapper').className = 'wrapper ' + m;
+  document.getElementById('lblSingle').className = 'mode-label' + (m==='single'?' active':'');
+  document.getElementById('lblMulti').className = 'mode-label' + (m==='multi'?' active':'');
+
+  if (m === 'single' && lastData) {
+    renderSingle(lastData);
+  }
+  if (m === 'multi') {
+    if (records.length === 0 && lastData) {
+      addRecord(lastData);
+    } else {
+      renderRecords();
+      notifyResize();
+    }
+  }
+}
+
+function notifyResize() {
+  if (!ipc || mode !== 'multi') return;
+  var count = records.length;
+  var rows = Math.min(count, MULTI_MAX_VIS);
+  var h = MULTI_BASE_H + Math.max(1, rows) * MULTI_ROW_H;
+  // Set scroll-area max-height
+  var sa = document.getElementById('recordList');
+  if (sa) {
+    sa.style.maxHeight = count > MULTI_MAX_VIS ? (MULTI_MAX_VIS * MULTI_ROW_H) + 'px' : 'none';
+  }
+  ipc.send('popup-resize', { w: 320, h: h, count: count });
+}
+
+// ---- IPC from main process ----
+if (ipc) {
+  // Main sends this to (re)initialize a pre-created window
+  ipc.on('init-mode', function(event, cfg) {
+    if (cfg.maxRecords) maxRecords = cfg.maxRecords;
+    if (cfg.data) lastData = cfg.data;
+
+    var newMode = cfg.mode || 'single';
+    mode = newMode;
+    records = []; // fresh start
+
+    if (newMode === 'multi' && cfg.data) {
+      applyMode('multi'); // will addRecord inside
+    } else if (newMode === 'single') {
+      applyMode('single');
+    } else {
+      applyMode(newMode);
+    }
+  });
+
+  // Append a new record (multi mode, window already visible)
+  ipc.on('append-record', function(event, data) {
+    lastData = data;
+    if (mode === 'multi') {
+      addRecord(data);
+    } else {
+      renderSingle(data);
+    }
+  });
+
+  // When multi window is recreated for shrink, main tells us to restore
+  ipc.on('restore-records', function(event, info) {
+    // Records were lost during recreate; start fresh with lastData
+    // The main process doesn't hold records — just re-init
+    mode = 'multi';
+    applyMode('multi');
+  });
+
+  ipc.on('set-max-records', function(event, n) {
+    maxRecords = n || 5;
+    renderRecords();
+  });
+}
+
+// ---- Init ----
+document.getElementById('modeToggle').onclick = function(e) {
+  var tgt = e.target;
+  if (tgt.id === 'lblSingle' || tgt.closest && tgt.closest('#lblSingle')) setMode('single');
+  else if (tgt.id === 'lblMulti' || tgt.closest && tgt.closest('#lblMulti')) setMode('multi');
+  else setMode(mode === 'single' ? 'multi' : 'single');
+};
+document.getElementById('btnClose').onclick = closePopup;
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePopup(); });
+
+// Window starts hidden; will be initialized via 'init-mode' IPC from main
+applyMode('single');
+})();
+</script>
+</body>
+</html>

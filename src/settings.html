@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sundial Settings</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0e0e12!important;margin:0;padding:0;overflow:hidden}
+body{
+  width:420px;
+  color:#fff;font-family:-apple-system,'Segoe UI','PingFang SC',sans-serif;
+  user-select:none;
+  position:relative
+}
+.wrapper{
+  background:#0e0e12;
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+  animation:s .2s ease-out;
+  position:relative
+}
+/* Drag handle at top for window dragging */
+.drag-bar{
+  -webkit-app-region:drag;
+  height:6px;cursor:grab;flex-shrink:0
+}
+.drag-bar *{-webkit-app-region:no-drag}
+@keyframes s{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+.hd{text-align:center;padding:22px 20px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.hd h2{font-size:18px;font-weight:800;color:#2ecc71;letter-spacing:3px}
+.hd p{font-size:10px;color:rgba(255,255,255,.3);margin-top:4px}
+.ct{padding:20px 24px}
+.sec{margin-bottom:22px}
+.st{
+  font-size:11px;font-weight:700;color:#2ecc71;letter-spacing:1px;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px
+}
+
+/* Form elements */
+.fg{margin-bottom:8px}
+.fg label{display:block;font-size:11px;color:rgba(255,255,255,.55);margin-bottom:5px;font-weight:500}
+.fg select,.fg input[type=text]{
+  width:100%;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;color:#fff;font-size:13px;font-family:inherit;
+  outline:none;transition:border-color .15s
+}
+.fg select:focus,.fg input:focus{border-color:rgba(46,204,113,.4)}
+.fg select option{background:#1a1a1f;color:#fff}
+
+/* Hotkey recorder */
+.hk-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.hk-btn{
+  padding:7px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;font-family:'SF Mono',Consolas,monospace;
+  font-weight:600;cursor:pointer;transition:all .12s
+}
+.hk-btn:hover{background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.25);color:#2ecc71}
+.hk-btn.active{background:rgba(46,204,113,.15);border-color:#2ecc71;color:#2ecc71}
+
+.hk-recorder{
+  display:flex;align-items:center;gap:10px;margin-top:8px
+}
+.hk-display{
+  flex:1;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;color:#2ecc71;font-size:14px;font-family:'SF Mono',Consolas,monospace;
+  font-weight:700;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s
+}
+.hk-record-btn{
+  padding:8px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;color:rgba(255,255,255,.6);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .12s;font-family:inherit;white-space:nowrap
+}
+.hk-record-btn:hover{background:rgba(46,204,113,.1);border-color:rgba(46,204,113,.25);color:#2ecc71}
+
+/* Toggle switch */
+.tg-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.tg-label{font-size:12px;color:rgba(255,255,255,.65)}
+.tg-switch{
+  position:relative;width:40px;height:22px;cursor:pointer
+}
+.tg-switch input{display:none}
+.tg-slider{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:rgba(255,255,255,.1);border-radius:11px;transition:.2s
+}
+.tg-slider:before{
+  content:'';position:absolute;height:17px;width:17px;left:3px;bottom:2.5px;
+  background:#fff;border-radius:50%;transition:.2s
+}
+.tg-switch input:checked + .tg-slider{background:#2ecc71}
+.tg-switch input:checked + .tg-slider:before{transform:translateX(18px)}
+
+/* Save button */
+.btn-row{display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.05)}
+.btn{
+  flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;
+  cursor:pointer;border:none;outline:none;transition:.15s;font-family:inherit
+}
+.btn-save{background:#2ecc71;color:#000}
+.btn-save:hover{background:#27ae60;color:#fff}
+.btn-cancel{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+
+.toast{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  padding:8px 20px;border-radius:8px;
+  font-size:12px;font-weight:600;display:none;z-index:100;
+  background:#2ecc71;color:#000
+}
+.toast.show{display:block;animation:t .3s ease}
+.toast.error{background:rgba(255,80,80,.9);color:#fff}
+.toast.warn{background:rgba(255,180,50,.9);color:#000}
+@keyframes t{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Close button */
+.close-btn{
+  position:absolute;top:10px;right:12px;z-index:10;
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.35);font-size:15px;font-weight:400;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .12s;line-height:1
+}
+.close-btn:hover{background:rgba(255,80,80,.12);border-color:rgba(255,80,80,.25);color:#ff6b6b}
+
+/* Recording state: smaller text to fit */
+.hk-display.recording{
+  border-color:#2ecc71;background:rgba(46,204,113,.08);
+  font-size:11px;color:rgba(46,204,113,.7);
+  animation:pulse 1s ease-in-out infinite
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}50%{box-shadow:0 0 0 4px rgba(46,204,113,.15)}}
+
+/* Preset row: single line */
+.hk-grid{display:flex;flex-wrap:nowrap;gap:6px;margin-top:4px}
+
+.ft{text-align:center;padding:10px;font-size:9px;color:rgba(255,255,255,.18);border-top:1px solid rgba(255,255,255,.04)}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<button class="close-btn" id="btnClose" title="Close">✕</button>
+
+<!-- Drag handle for window dragging -->
+<div class="drag-bar"></div>
+
+<div class="hd" style="-webkit-app-region:drag">
+  <h2 style="-webkit-app-region:no-drag">SUNDIAL</h2>
+  <p>Settings &amp; Preferences</p>
+</div>
+
+<div class="ct">
+  <!-- Hotkey -->
+  <div class="sec">
+    <div class="st">Keyboard Shortcut</div>
+    <div class="fg">
+      <label>Press this key combo to convert selected timestamp:</label>
+      <div class="hk-recorder">
+        <div class="hk-display" id="hkDisplay">F9</div>
+        <button class="hk-record-btn" id="hkRecordBtn" onclick="toggleRecording()">Record</button>
+      </div>
+      <div class="hk-grid" id="hkGrid" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- Timezone -->
+  <div class="sec">
+    <div class="st">Display Timezone</div>
+    <div class="fg">
+      <label>Show converted time in this timezone:</label>
+      <select id="tzSelect"></select>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="sec">
+    <div class="st">Options</div>
+    <div class="tg-row">
+      <span class="tg-label">Multi Convert mode</span>
+      <label class="tg-switch"><input type="checkbox" id="multiToggle"><span class="tg-slider"></span></label>
+    </div>
+    <div class="multi-opts" id="multiOpts" style="display:none;padding:6px 0 0 4px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:rgba(255,255,255,.45)">Max records</span>
+        <input type="number" id="maxRecordsInput" value="5" min="2" max="20"
+          style="width:56px;padding:5px 8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#2ecc71;font-size:12px;font-family:'SF Mono',Consolas,monospace;font-weight:600;text-align:center;outline:none">
+        <span style="font-size:9px;color:rgba(255,255,255,.2)">(2-20)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-save" onclick="saveSettings()">Save Settings</button>
+    <button class="btn btn-cancel" onclick="closeSettings()">Cancel</button>
+  </div>
+</div>
+
+<div class="ft"><span id="ftVer">Sundial</span> - Press Esc or click ✕ to close</div>
+
+<div class="toast" id="toast">Settings saved!</div>
+
+</div><!-- .wrapper -->
+
+<script>
+var { ipcRenderer } = require('electron');
+var settings = {};
+var currentHotkey = 'F9';
+var isRecording = false;
+
+// Preset quick-pick keys
+var PRESETS = ['F7','F8','F9','Ctrl+Shift+T'];
+
+function loadSettings() {
+  ipcRenderer.invoke('get-settings').then(function(data) {
+    settings = data || {};
+    currentHotkey = data.hotkey || 'F9';
+    updateHotkeyDisplay();
+    renderPresets();
+    renderTimezones();
+    document.getElementById('multiToggle').checked = data.multiMode === true;
+    document.getElementById('maxRecordsInput').value = data.maxRecords || 5;
+    toggleMultiOpts();
+    if (data.version) document.getElementById('ftVer').textContent = 'Sundial v' + data.version;
+    scheduleResize();
+  });
+}
+
+function toggleMultiOpts() {
+  var on = document.getElementById('multiToggle').checked;
+  document.getElementById('multiOpts').style.display = on ? 'block' : 'none';
+  scheduleResize();
+}
+document.getElementById('multiToggle').onchange = toggleMultiOpts;
+
+function updateHotkeyDisplay() {
+  document.getElementById('hkDisplay').textContent = currentHotkey;
+}
+
+function renderPresets() {
+  var grid = document.getElementById('hkGrid');
+  var html = '';
+  for (var i = 0; i < PRESETS.length; i++) {
+    var active = PRESETS[i] === currentHotkey ? ' active' : '';
+    html += '<button class="hk-btn' + active + '" onclick="selectHotkey(\'' + PRESETS[i] + '\')">' + PRESETS[i] + '</button>';
+  }
+  grid.innerHTML = html;
+}
+
+function selectHotkey(key) {
+  currentHotkey = key;
+  isRecording = false;
+  document.getElementById('hkRecordBtn').textContent = 'Record';
+  document.getElementById('hkDisplay').classList.remove('recording');
+  updateHotkeyDisplay();
+  renderPresets();
+}
+
+function toggleRecording() {
+  isRecording = !isRecording;
+  var btn = document.getElementById('hkRecordBtn');
+  var display = document.getElementById('hkDisplay');
+  if (isRecording) {
+    btn.textContent = 'Cancel';
+    display.textContent = 'Press any key combo...';
+    display.classList.add('recording');
+  } else {
+    btn.textContent = 'Record';
+    display.classList.remove('recording');
+    updateHotkeyDisplay();
+  }
+}
+
+// Map Electron key names
+function keyToAccelerator(e) {
+  var parts = [];
+  if (e.ctrlKey) parts.push('Ctrl');
+  if (e.altKey) parts.push('Alt');
+  if (e.shiftKey) parts.push('Shift');
+  if (e.metaKey) parts.push('Super');
+
+  var key = e.key;
+  // Ignore standalone modifier keys
+  if (['Control','Alt','Shift','Meta'].indexOf(key) >= 0) return null;
+
+  // Normalize key names to Electron accelerator format
+  if (key === ' ') key = 'Space';
+  else if (key === 'ArrowUp') key = 'Up';
+  else if (key === 'ArrowDown') key = 'Down';
+  else if (key === 'ArrowLeft') key = 'Left';
+  else if (key === 'ArrowRight') key = 'Right';
+  else if (key === 'Escape') key = 'Esc';
+  else if (key === 'Delete') key = 'Delete';
+  else if (key === 'Backspace') key = 'Backspace';
+  else if (key === 'Enter') key = 'Return';
+  else if (key === 'Tab') key = 'Tab';
+  else if (/^F\d{1,2}$/.test(key)) { /* F1-F12, keep as-is */ }
+  else if (key.length === 1) key = key.toUpperCase();
+  else key = key.charAt(0).toUpperCase() + key.slice(1);
+
+  parts.push(key);
+
+  // Single letter/number/symbol keys without modifiers are risky — warn but allow
+  return parts.join('+');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && !isRecording) { closeSettings(); return; }
+
+  if (!isRecording) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  var accel = keyToAccelerator(e);
+  if (!accel) return; // still pressing modifier only
+
+  currentHotkey = accel;
+  isRecording = false;
+  document.getElementById('hkRecordBtn').textContent = 'Record';
+  document.getElementById('hkDisplay').classList.remove('recording');
+  updateHotkeyDisplay();
+  renderPresets();
+});
+
+function renderTimezones() {
+  var sel = document.getElementById('tzSelect');
+  var tzList = settings.timezoneOptions || [];
+  var curTz = settings.timezone || 'Asia/Shanghai';
+  var html = '';
+  for (var i = 0; i < tzList.length; i++) {
+    var selected = tzList[i].value === curTz ? ' selected' : '';
+    html += '<option value="' + tzList[i].value + '"' + selected + '>' + tzList[i].label + '</option>';
+  }
+  sel.innerHTML = html;
+}
+
+function saveSettings() {
+  var newHotkey = currentHotkey;
+  var newTz = document.getElementById('tzSelect').value;
+  var newMulti = document.getElementById('multiToggle').checked;
+  var newMax = parseInt(document.getElementById('maxRecordsInput').value) || 5;
+
+  ipcRenderer.send('save-settings', {
+    hotkey: newHotkey,
+    timezone: newTz,
+    multiMode: newMulti,
+    maxRecords: newMax
+  });
+}
+
+ipcRenderer.on('settings-saved', function(event, result) {
+  if (!result || result.ok) {
+    if (result && result.fallback) {
+      // Hotkey conflict but fallback succeeded
+      currentHotkey = result.key;
+      updateHotkeyDisplay();
+      renderPresets();
+      showToast('"' + result.requested + '" is in use, switched to ' + result.key, 'warn');
+    } else {
+      showToast('Settings saved!', 'ok');
+    }
+  } else {
+    showToast('Hotkey "' + result.key + '" conflicts and all fallbacks failed!', 'error');
+  }
+});
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg || 'Settings saved!';
+  t.className = 'toast show' + (type === 'error' ? ' error' : type === 'warn' ? ' warn' : '');
+  setTimeout(function() { t.className = 'toast'; }, 3000);
+}
+
+function closeSettings() {
+  ipcRenderer.send('close-settings');
+}
+
+document.getElementById('btnClose').onclick = closeSettings;
+
+// Listen for refresh when window is reused (pre-created pattern)
+ipcRenderer.on('refresh-settings', function() {
+  loadSettings();
+});
+
+// Notify main process to resize settings window to fit content
+function notifySettingsResize() {
+  var wrapper = document.querySelector('.wrapper');
+  // Temporarily allow overflow so scrollHeight reflects true content height
+  wrapper.style.overflow = 'visible';
+  var h = wrapper.scrollHeight;
+  wrapper.style.overflow = 'hidden';
+  if (h > 50) {
+    ipcRenderer.send('settings-resize', { h: h + 2 }); // +2 to avoid sub-pixel clipping
+  }
+}
+
+// Schedule multiple resize checks to catch late layout shifts
+function scheduleResize() {
+  setTimeout(notifySettingsResize, 50);
+  setTimeout(notifySettingsResize, 150);
+  setTimeout(notifySettingsResize, 400);
+}
+
+// Init
+loadSettings();
+</script>
+</body>
+</html>

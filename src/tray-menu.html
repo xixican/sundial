@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sundial Menu</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0e0e12!important;margin:0;padding:0;overflow:hidden}
+body{color:#fff;font-family:-apple-system,'Segoe UI','PingFang SC',sans-serif;user-select:none}
+.wrapper{
+  background:#0e0e12;
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+  animation:s .15s ease-out
+}
+@keyframes s{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+.hd{
+  text-align:center;padding:14px 16px 10px;
+  border-bottom:1px solid rgba(255,255,255,.06)
+}
+.hd-title{font-size:13px;font-weight:800;color:#2ecc71;letter-spacing:3px}
+.hd-ver{font-size:9px;color:rgba(255,255,255,.25);margin-top:2px}
+
+.info{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04)}
+.info-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 8px;font-size:11px;cursor:pointer;border-radius:6px;
+  transition:background .12s
+}
+.info-row:hover{background:rgba(46,204,113,.06)}
+.info-label{color:rgba(255,255,255,.4);font-weight:500}
+.info-value{
+  color:#2ecc71;font-weight:600;font-family:'SF Mono',Consolas,monospace;
+  font-size:11px;background:rgba(46,204,113,.08);
+  padding:2px 8px;border-radius:6px;border:1px solid rgba(46,204,113,.12)
+}
+
+.menu{padding:6px 8px}
+.menu-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;
+  font-size:12px;font-weight:500;color:rgba(255,255,255,.7);
+  cursor:pointer;transition:all .12s;
+  border:1px solid transparent
+}
+.menu-item:hover{
+  background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.15);
+  color:#fff
+}
+.menu-item:active{
+  background:rgba(46,204,113,.15);transform:scale(.98)
+}
+.menu-item .icon{
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;opacity:.7
+}
+.menu-item:hover .icon{opacity:1}
+
+.sep{height:1px;background:rgba(255,255,255,.04);margin:4px 12px}
+
+.menu-item.quit{color:rgba(255,120,120,.65)}
+.menu-item.quit:hover{background:rgba(255,80,80,.08);border-color:rgba(255,80,80,.15);color:#ff6b6b}
+
+.ft{
+  text-align:center;padding:6px;font-size:8px;
+  color:rgba(255,255,255,.12);border-top:1px solid rgba(255,255,255,.03)
+}
+
+/* Timezone dropdown */
+.tz-val{cursor:pointer;position:relative}
+.tz-val::after{content:'▾';margin-left:4px;font-size:8px;opacity:.5}
+.tz-dropdown{
+  display:none;max-height:180px;overflow-y:auto;
+  margin:0 8px 4px;
+  background:rgba(20,20,28,.95);border:1px solid rgba(46,204,113,.15);
+  box-shadow:0 4px 16px rgba(0,0,0,.3)
+}
+.tz-dropdown.open{display:block}
+.tz-dropdown::-webkit-scrollbar{width:3px}
+.tz-dropdown::-webkit-scrollbar-track{background:transparent}
+.tz-dropdown::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.tz-item{
+  padding:7px 12px;font-size:10px;color:rgba(255,255,255,.6);
+  cursor:pointer;transition:all .1s;border-bottom:1px solid rgba(255,255,255,.03)
+}
+.tz-item:last-child{border-bottom:none}
+.tz-item:hover{background:rgba(46,204,113,.08);color:#fff}
+.tz-item.active{color:#2ecc71;font-weight:600;background:rgba(46,204,113,.06)}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="hd">
+  <div class="hd-title">SUNDIAL</div>
+  <div class="hd-ver">Timestamp Converter</div>
+</div>
+
+<div class="info">
+  <div class="info-row" id="rowHotkey">
+    <span class="info-label">Hotkey</span>
+    <span class="info-value" id="hotkey">F9</span>
+  </div>
+  <div class="info-row" id="rowTimezone">
+    <span class="info-label">Timezone</span>
+    <span class="info-value tz-val" id="timezone">Beijing (UTC+8)</span>
+  </div>
+  <div class="tz-dropdown" id="tzDropdown">
+    <div class="tz-list" id="tzList"></div>
+  </div>
+</div>
+
+<div class="menu">
+  <div class="menu-item" id="btnSettings">
+    <span class="icon">⚙</span>
+    <span>Settings</span>
+  </div>
+  <div class="menu-item" id="btnHelp">
+    <span class="icon">?</span>
+    <span>Help</span>
+  </div>
+  <div class="sep"></div>
+  <div class="menu-item quit" id="btnQuit">
+    <span class="icon">✕</span>
+    <span>Quit Sundial</span>
+  </div>
+</div>
+
+<div class="ft" id="ftVer">Sundial</div>
+
+</div><!-- .wrapper -->
+
+<script>
+var ipc = null;
+try { ipc = require('electron').ipcRenderer; } catch(e) {}
+
+function send(ch, data) {
+  if (ipc) ipc.send(ch, data);
+}
+
+var tzOptions = []; // [{value, label}]
+var currentTz = '';
+var dropdownOpen = false;
+
+function loadInfo() {
+  if (!ipc) return;
+  ipc.invoke('get-settings').then(function(data) {
+    if (data) {
+      document.getElementById('hotkey').textContent = data.hotkey || 'F9';
+      currentTz = data.timezone || 'Asia/Shanghai';
+      tzOptions = data.timezoneOptions || [];
+      var tz = tzOptions.find(function(t) { return t.value === currentTz; });
+      document.getElementById('timezone').textContent = tz ? tz.label : currentTz;
+      if (data.version) document.getElementById('ftVer').textContent = 'v' + data.version;
+      buildTzList();
+    }
+  });
+}
+
+function buildTzList() {
+  var list = document.getElementById('tzList');
+  var html = '';
+  for (var i = 0; i < tzOptions.length; i++) {
+    var t = tzOptions[i];
+    var cls = t.value === currentTz ? 'tz-item active' : 'tz-item';
+    html += '<div class="' + cls + '" data-tz="' + t.value + '">' + t.label + '</div>';
+  }
+  list.innerHTML = html;
+
+  // Bind click events
+  var items = list.querySelectorAll('.tz-item');
+  for (var j = 0; j < items.length; j++) {
+    items[j].onclick = function(e) {
+      e.stopPropagation();
+      var val = this.getAttribute('data-tz');
+      if (val && val !== currentTz) {
+        currentTz = val;
+        send('tray-change-timezone', val);
+        var tz = tzOptions.find(function(t) { return t.value === val; });
+        document.getElementById('timezone').textContent = tz ? tz.label : val;
+        buildTzList(); // refresh active state
+      }
+      toggleDropdown(false);
+    };
+  }
+}
+
+function toggleDropdown(show) {
+  var dd = document.getElementById('tzDropdown');
+  dropdownOpen = (show === undefined) ? !dropdownOpen : show;
+  dd.className = dropdownOpen ? 'tz-dropdown open' : 'tz-dropdown';
+  // Notify main process to resize menu window
+  if (ipc) {
+    var h = dropdownOpen ? 440 : 260;
+    ipc.send('tray-menu-resize', { h: h });
+  }
+}
+
+// Load on init
+loadInfo();
+
+// Refresh when menu is shown again (pre-created window reuse)
+if (ipc) {
+  ipc.on('refresh-info', function() {
+    toggleDropdown(false);
+    loadInfo();
+  });
+}
+
+// Hotkey row -> open settings
+document.getElementById('rowHotkey').onclick = function() { send('tray-open-settings'); };
+
+// Timezone row -> toggle dropdown
+document.getElementById('rowTimezone').onclick = function(e) {
+  e.stopPropagation();
+  toggleDropdown();
+};
+
+document.getElementById('btnSettings').onclick = function() { send('tray-settings'); };
+document.getElementById('btnHelp').onclick = function() { send('tray-help'); };
+document.getElementById('btnQuit').onclick = function() { send('tray-quit'); };
+
+// Close on ESC
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') send('tray-close'); });
+
+// Click elsewhere in body to close dropdown
+document.body.addEventListener('click', function() {
+  if (dropdownOpen) toggleDropdown(false);
+});
+</script>
+</body>
+</html>
