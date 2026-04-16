@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sundial Help</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0f0f14!important;margin:0;padding:0;overflow:hidden}
+body{
+  width:480px;height:420px;
+  color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;
+  user-select:none;
+  position:relative
+}
+.wrapper{
+  width:100%;height:100%;
+  background:#0f0f14;
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+  animation:f .2s ease-out;
+  position:relative
+}
+.scroll-wrap{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  overflow-y:auto;overflow-x:hidden
+}
+.scroll-wrap::-webkit-scrollbar{width:4px}
+.scroll-wrap::-webkit-scrollbar-track{background:transparent}
+.scroll-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+@keyframes f{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.hd{text-align:center;padding:24px 20px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.lg{width:48px;height:48px;border-radius:12px;margin-bottom:10px;border:2px solid rgba(46,204,113,.35)}
+.nm{font-size:20px;font-weight:800;letter-spacing:5px;color:#2ecc71;text-shadow:0 0 20px rgba(46,204,113,.3)}.sb{font-size:11px;color:rgba(255,255,255,.3);margin-top:5px}
+.ct{padding:18px 24px}.sc{margin-bottom:16px}
+.st{font-size:12px;font-weight:700;color:#2ecc71;letter-spacing:1px;margin-bottom:8px}
+.cd{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:11px 14px;margin-bottom:8px}
+.cd:hover{background:rgba(46,204,113,.05);border-color:rgba(46,204,113,.12)}
+.cn{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px}
+.cd-desc{font-size:11px;color:rgba(255,255,255,.42);line-height:1.6}
+.kbd{display:inline-block;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.25);color:#2ecc71;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:'SF Mono',Consolas,monospace}
+.tip{background:rgba(46,204,113,.06);border:1px solid rgba(46,204,113,.12);border-radius:8px;padding:10px 12px;font-size:11px;color:rgba(255,255,255,.5);line-height:1.6}
+.tip strong{color:#2ecc71}
+.ft{text-align:center;padding:10px;font-size:9px;color:rgba(255,255,255,.18);border-top:1px solid rgba(255,255,255,.05)}
+.close-btn{
+  position:absolute;top:10px;right:12px;z-index:99;
+  width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);
+  font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;-webkit-app-region:no-drag
+}
+.close-btn:hover{background:rgba(255,80,80,.15);border-color:rgba(255,80,80,.25);color:#ff6b6b}
+.close-btn:active{transform:scale(.92)}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<button class="close-btn" id="btnClose" title="Close (Esc)">✕</button>
+
+<div class="scroll-wrap">
+<div class="hd"><img class="lg" src="../assets/icon.png" alt="S" onerror="this.style.display='none'"><div class="nm">SUNDIAL</div><div class="sb" id="helpVer">Timestamp Converter</div></div>
+
+<div class="ct">
+<div class="sc"><div class="st">How to Use</div>
+<div class="cd"><div class="cn">Step 1 - Select Text</div><div class="cd-desc">Highlight a timestamp number on screen (in terminal, log file, browser, etc.)</div></div>
+<div class="cd"><div class="cn">Step 2 - Press Hotkey</div><div class="cd-desc">Press <span class="kbd">F9</span> (or your custom hotkey). Sundial will copy the selected text automatically.</div></div>
+<div class="cd"><div class="cn">Step 3 - See Result</div><div class="cd-desc">A popup appears near your cursor showing the converted time. Click to copy!</div></div></div>
+
+<div class="sc"><div class="st">Features</div>
+<div class="cd"><div class="cd-desc"><strong style="color:#2ecc71;">Auto Copy:</strong> Hotkey simulates Ctrl+C for you<br><strong style="color:#2ecc71;">Clipboard Restore:</strong> Original clipboard is preserved<br><strong style="color:#2ecc71;">Timezone Support:</strong> Convert to any timezone<br><strong style="color:#2ecc71;">Customizable Hotkey:</strong> F6-F12 available</div></div></div>
+
+<div class="sc"><div class="st">Tray Menu</div>
+<div class="cd"><div class="cd-desc"><strong>Convert (F9)</strong> - Manual trigger<br><strong>Settings...</strong> - Change hotkey &amp; timezone<br><strong>Help</strong> - This window<br><strong>Quit</strong> - Exit completely</div></div></div>
+
+<div class="tip">Your original clipboard content is always restored after conversion.</div>
+</div>
+<div class="ft" id="helpFtVer">Sundial - Press Esc or click ✕ to close</div>
+</div>
+</div><!-- .wrapper -->
+
+<script>
+var ipc = null;
+try { ipc = require('electron').ipcRenderer; } catch(e) {}
+
+// Load version from main process
+if (ipc) {
+  ipc.invoke('get-settings').then(function(data) {
+    if (data && data.version) {
+      document.getElementById('helpVer').textContent = 'Timestamp Converter v' + data.version;
+      document.getElementById('helpFtVer').textContent = 'Sundial v' + data.version + ' - Press Esc or click \u2715 to close';
+    }
+  });
+}
+
+function closeHelp() {
+  if (ipc) ipc.send('close-help');
+}
+
+document.getElementById('btnClose').onclick = closeHelp;
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeHelp();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sundial — 极速时间戳转换工具</title>
+<meta name="description" content="Sundial 是一款轻量级桌面时间戳转换工具，选中文本按下热键即可转换，常驻系统托盘，支持 Windows 和 macOS。">
+<link rel="icon" href="icon_64.png" type="image/png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a25;
+  --text:#e4e4ed;--text2:#9898ab;--text3:#6a6a7e;
+  --accent:#34d399;--accent2:#5eead4;--accent-glow:rgba(52,211,153,.15);
+  --green:#34d399;--orange:#fb923c;--red:#f87171;
+  --border:#2a2a3a;--radius:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+a{color:var(--accent2);text-decoration:none;transition:color .2s}
+a:hover{color:var(--accent)}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);background:rgba(10,10,15,.8);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+.nav-brand img{width:28px;height:28px}
+.nav-links{display:flex;gap:24px;font-size:14px}
+.nav-links a{color:var(--text2)}
+.nav-links a:hover{color:var(--text)}
+
+/* hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,var(--accent-glow),transparent 70%);top:10%;left:50%;transform:translateX(-50%);pointer-events:none}
+.hero-logo{width:96px;height:96px;margin-bottom:24px;filter:drop-shadow(0 0 40px rgba(52,211,153,.3));animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero h1{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-.02em;margin-bottom:16px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--text2);max-width:560px;margin-bottom:12px}
+.hero-tagline{font-size:14px;color:var(--text3);margin-bottom:40px}
+.hero-buttons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .25s}
+.btn-primary{background:var(--accent);color:#0a0a0f;box-shadow:0 4px 20px rgba(52,211,153,.35);font-weight:700}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 6px 28px rgba(52,211,153,.45)}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border);transform:translateY(-2px)}
+.btn-disabled{background:var(--bg3);color:var(--text3);border:1px solid var(--border);cursor:not-allowed}
+.btn svg{width:18px;height:18px;fill:currentColor}
+
+/* sections */
+.section{padding:80px 24px;max-width:960px;margin:0 auto}
+.section-title{font-size:clamp(24px,3vw,36px);font-weight:700;text-align:center;margin-bottom:12px}
+.section-desc{text-align:center;color:var(--text2);margin-bottom:48px;max-width:600px;margin-left:auto;margin-right:auto}
+
+/* demo */
+.demo-area{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:640px;margin:0 auto 48px;position:relative;overflow:hidden}
+.demo-terminal{font-family:'Cascadia Code','Fira Code',monospace;font-size:14px;line-height:1.8;color:var(--text2)}
+.demo-terminal .hl{color:var(--green);font-weight:600}
+.demo-terminal .ts{color:var(--orange);text-decoration:underline;text-decoration-style:wavy;cursor:pointer}
+.demo-popup{position:absolute;right:32px;bottom:32px;background:#1e1e2a;border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:popIn .3s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.demo-popup .dt{color:var(--green);font-weight:600;font-size:15px}
+.demo-popup .tz{color:var(--text3);font-size:11px;margin-top:2px}
+
+/* features */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .25s}
+.feature-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 24px rgba(52,211,153,.1)}
+.feature-icon{font-size:28px;margin-bottom:12px}
+.feature-card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.feature-card p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* download */
+.download-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 24px}
+.download-cards{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;max-width:720px;margin:0 auto}
+.dl-card{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:32px;width:320px;text-align:center;transition:all .25s}
+.dl-card:hover{border-color:var(--accent);box-shadow:0 8px 32px rgba(52,211,153,.12)}
+.dl-card .os-icon{margin-bottom:16px;display:flex;justify-content:center}
+.dl-card .os-icon svg{width:48px;height:48px}
+.dl-card h3{font-size:18px;margin-bottom:4px}
+.dl-card .version{color:var(--text3);font-size:13px;margin-bottom:20px}
+.dl-card .dl-btn{width:100%;justify-content:center}
+.dl-card .size{color:var(--text3);font-size:12px;margin-top:10px}
+.coming-soon{display:inline-block;background:var(--bg3);color:var(--text3);padding:4px 12px;border-radius:20px;font-size:12px;margin-top:8px}
+
+/* how it works */
+.steps{display:flex;flex-direction:column;gap:24px;max-width:560px;margin:0 auto}
+.step{display:flex;gap:20px;align-items:flex-start}
+.step-num{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#0a0a0f;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.step-content h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.step-content p{font-size:13px;color:var(--text2)}
+
+/* tech */
+.tech-tags{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.tech-tag{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--text2)}
+
+/* footer */
+.footer{padding:40px 24px;text-align:center;border-top:1px solid var(--border);color:var(--text3);font-size:13px}
+.footer a{color:var(--text2)}
+
+/* toast */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);color:var(--text);padding:14px 28px;border-radius:var(--radius);font-size:14px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transition:all .3s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* responsive */
+@media(max-width:600px){
+  .nav-links{display:none}
+  .hero-buttons{flex-direction:column;align-items:center}
+  .dl-card{width:100%;max-width:320px}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-brand">
+    <img src="icon_64.png" alt="Sundial">
+    <span>Sundial</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#demo">演示</a>
+    <a href="#download">下载</a>
+    <a href="https://github.com/xixican/sundial" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <img class="hero-logo" src="icon_256.png" alt="Sundial Logo">
+  <h1>Sundial</h1>
+  <p class="hero-sub">选中文本，按下热键，即刻看到时间。</p>
+  <p class="hero-tagline">一款轻量级桌面时间戳转换工具，常驻系统托盘，开发者的效率利器。</p>
+  <div class="hero-buttons">
+    <a class="btn btn-primary" href="#download">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      立即下载
+    </a>
+    <a class="btn btn-secondary" href="https://github.com/xixican/sundial" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      GitHub
+    </a>
+  </div>
+</section>
+
+<!-- Demo -->
+<section class="section" id="demo">
+  <h2 class="section-title">看看效果</h2>
+  <p class="section-desc">在任何地方选中时间戳文本，按下热键，结果弹窗即刻出现在光标旁。</p>
+  <div class="demo-area">
+    <div class="demo-terminal">
+      <span style="color:var(--text3)">[2024-04-15 12:00:00]</span> server.go:142<br>
+      <span class="hl">INFO</span>&nbsp; user_login &nbsp;uid=10086 &nbsp;ts=<span class="ts">1713153600</span> &nbsp;ip=10.0.0.1<br>
+      <span class="hl">INFO</span>&nbsp; item_buy &nbsp;&nbsp;uid=10086 &nbsp;ts=<span class="ts">1713153600123</span> &nbsp;item=3001<br>
+      <span style="color:var(--text3)">[2024-04-15 12:01:05]</span> server.go:198<br>
+      <span class="hl">WARN</span>&nbsp; timeout &nbsp;&nbsp;&nbsp;uid=10086 &nbsp;ts=<span class="ts">1713153665</span> &nbsp;cost=5012ms
+    </div>
+    <div class="demo-popup">
+      <div class="dt">2024-04-15 12:00:00</div>
+      <div class="tz">Beijing (UTC+8) · 点击复制</div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section" id="features">
+  <h2 class="section-title">核心功能</h2>
+  <p class="section-desc">专为开发者打造，每一个细节都经过打磨。</p>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">⚡</div><h3>即时转换</h3><p>选中任意时间戳文本，按下 F9，结果立刻出现在光标旁边。</p></div>
+    <div class="feature-card"><div class="feature-icon">🔍</div><h3>智能检测</h3><p>自动识别秒级（10位）和毫秒级（13位）时间戳，毫秒精确显示 .SSS。</p></div>
+    <div class="feature-card"><div class="feature-icon">📋</div><h3>点击复制</h3><p>点击转换结果即可复制到剪贴板，原始剪贴板内容自动恢复。</p></div>
+    <div class="feature-card"><div class="feature-icon">🌍</div><h3>18 个时区</h3><p>从 UTC 到 Auckland，在托盘菜单中一键切换显示时区。</p></div>
+    <div class="feature-card"><div class="feature-icon">📌</div><h3>单条/多条模式</h3><p>单条模式即用即走，多条模式可收集多个时间戳对比查看。</p></div>
+    <div class="feature-card"><div class="feature-icon">⌨️</div><h3>自定义热键</h3><p>预设 F7/F8/F9/Ctrl+Shift+T，也支持录制任意组合键。</p></div>
+  </div>
+</section>
+
+<!-- Download -->
+<section class="download-section" id="download">
+  <div class="section">
+    <h2 class="section-title">下载 Sundial</h2>
+    <p class="section-desc">免费开源，MIT 协议。选择你的平台：</p>
+    <div class="download-cards">
+      <div class="dl-card">
+        <div class="os-icon">
+          <svg viewBox="0 0 24 24" fill="#00adef"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+        </div>
+        <h3>Windows</h3>
+        <p class="version">v1.0.0 · 免安装便携版</p>
+        <a class="btn btn-primary dl-btn" href="https://github.com/xixican/sundial/releases/download/v1.0.0/Sundial.1.0.0.exe" id="dl-win">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          下载 Windows 版
+        </a>
+        <p class="size">~73 MB · Windows 10/11</p>
+      </div>
+      <div class="dl-card">
+        <div class="os-icon">
+          <svg viewBox="0 0 24 24" fill="#a2aaad"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        </div>
+        <h3>macOS</h3>
+        <p class="version">v1.0.0 · DMG 安装包</p>
+        <button class="btn btn-disabled dl-btn" onclick="showComingSoon()" id="dl-mac">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          下载 macOS 版
+        </button>
+        <span class="coming-soon">🚧 Coming Soon</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="section">
+  <h2 class="section-title">三步上手</h2>
+  <p class="section-desc">不需要配置，开箱即用。</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content"><h3>下载运行</h3><p>下载 exe 双击运行，Sundial 自动常驻系统托盘区域。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content"><h3>选中 + 按键</h3><p>在任意应用中选中时间戳文本，按下 F9（默认热键）。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content"><h3>查看结果</h3><p>转换后的时间弹窗出现在光标旁，点击即可复制。6 秒后自动消失。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Tech -->
+<section class="section">
+  <h2 class="section-title">技术栈</h2>
+  <p class="section-desc">小而精的架构，无冗余依赖。</p>
+  <div class="tech-tags">
+    <span class="tech-tag">Electron 28</span>
+    <span class="tech-tag">Vanilla JS</span>
+    <span class="tech-tag">electron-store</span>
+    <span class="tech-tag">electron-builder</span>
+    <span class="tech-tag">NSIS</span>
+    <span class="tech-tag">MIT License</span>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>© 2024 Sundial · <a href="https://github.com/xixican/sundial">GitHub</a> · MIT License</p>
+  <p style="margin-top:8px">Built with ☕ and a dislike for opening browser tabs just to convert timestamps.</p>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+function showComingSoon(){
+  var t=document.getElementById('toast');
+  t.textContent='🚧 macOS 版本正在开发中，敬请期待！';
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2500);
+}
+// smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    var target=document.querySelector(this.getAttribute('href'));
+    if(target){e.preventDefault();target.scrollIntoView({behavior:'smooth'})}
+  });
+});
+</script>
+</body>
+</html>
